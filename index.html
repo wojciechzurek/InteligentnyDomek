@@ -1,0 +1,93 @@
+﻿<!DOCTYPE HTML>
+<html>
+	<head>
+		<title> Inteligentny Dom </title>
+		<meta charset="UTF-8"></meta>
+		<script>
+			function sliderVal(sliderID)
+			{
+				var slider = document.getElementById("slider"+sliderID);
+				document.getElementById("sliderText"+sliderID).value = slider.value;
+				
+				printJSON();
+			}
+			
+			function clickBulb(bulbID)
+			{
+				var bulb = document.getElementById("zarowka"+bulbID+"_img");
+				var on = bulb.src.match("zarowka_on.png")=="zarowka_on.png";
+				var newText = on?"OFF":"ON";
+				var newImage = on?"zarowka_off.png":"zarowka_on.png";
+
+				document.getElementById("zarowka"+bulbID).innerHTML = "Żarówka "+bulbID+": "+newText;
+				bulb.src = newImage;
+
+				printJSON();
+			}
+			
+			function printJSON()
+			{
+				var intelligentHome = {};
+				intelligentHome.bulbs = [];
+				intelligentHome.servos = [];
+
+				for(var i = 1; i <= 2; i++)
+				{
+					var bulb = {};
+					bulb.id = i;
+					bulb.on = document.getElementById("zarowka"+i+"_img").src.match("zarowka_on.png")=="zarowka_on.png";
+					
+					intelligentHome.bulbs.push(bulb);
+				}
+				
+				for(var i = 1; i <= 3; i++)
+				{
+					var servo = {};
+					servo.id = i;
+					servo.value = document.getElementById("slider"+i).value;
+					
+					intelligentHome.servos.push(servo);
+				}
+
+				document.getElementById("jsonTextArea").value = JSON.stringify(intelligentHome);
+				//console.log(JSON.stringify(intelligentHome));
+			}
+			
+			function start()
+			{
+				printJSON();
+			}
+		</script>
+	</head>
+	<body style="text-align:center" onload="start()">
+		<input id="slider1" type="range" min="0" max="255" step="1" value="128" oninput="sliderVal(1)" onchange="sliderVal(1)"></input>
+		<input id="sliderText1" type="text" size="1" value="128" disabled></input>
+		</br>
+		</br>
+		<input id="slider2" type="range" min="0" max="255" step="1" value="0" oninput="sliderVal(2)" onchange="sliderVal(2)"></input>
+		<input id="sliderText2" type="text" size="1" value="0" disabled></input>
+		</br>
+		</br>
+		<input id="slider3" type="range" min="0" max="255" step="1" value="255" oninput="sliderVal(3)" onchange="sliderVal(3)"></input>
+		<input id="sliderText3" type="text" size="1" value="255" disabled></input>
+		</br>
+		</br>
+		</br>
+		</br>
+		<img id="zarowka1_img" src="zarowka_on.png" onclick="clickBulb(1)"></img>
+		</br>
+		<p id="zarowka1">Żarówka 1: ON</p>
+		</br>
+		</br>
+		</br>
+		<img id="zarowka2_img" src="zarowka_on.png" onclick="clickBulb(2)"></img>
+		</br>
+		<p id="zarowka2">Żarówka 2: ON</p>
+		</br>
+		</br>
+		</br>
+		JSON:
+		</br>
+		<textarea id="jsonTextArea" style="width:50%"></textarea>
+	</body>
+</html>
