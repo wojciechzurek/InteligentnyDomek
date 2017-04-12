@@ -4,6 +4,33 @@
 		<title> Inteligentny Dom </title>
 		<meta charset="UTF-8"></meta>
 		<script>
+			function pir(pirID)
+			{
+				var pir = document.getElementById("pir"+pirID+"_img");
+				var on = !(pir.src.match("pir.jpg")=="pir.jpg");
+				var newText = on?"0":"1";
+				var newImage = on?"pir.jpg":"pir2.jpg";
+
+				document.getElementById("pir"+pirID).innerHTML = newText;
+				pir.src = newImage;
+
+				printJSON();
+			}
+			
+			function roleta(roletaID,akcja)
+			{
+				var roleta = document.getElementById("roleta"+roletaID);
+
+				if (akcja == 1)
+					roleta.innerHTML = "W gore";
+				else if (akcja == 0)
+					roleta.innerHTML = "STOP";
+				else if (akcja == -1)
+					roleta.innerHTML = "W dol";
+
+				printJSON();
+			}
+			
 			function sliderVal(sliderID)
 			{
 				var slider = document.getElementById("slider"+sliderID);
@@ -30,6 +57,8 @@
 				var intelligentHome = {};
 				intelligentHome.bulbs = [];
 				intelligentHome.servos = [];
+				intelligentHome.pirs = [];
+				intelligentHome.rolets = [];
 
 				for(var i = 1; i <= 2; i++)
 				{
@@ -38,6 +67,24 @@
 					bulb.on = document.getElementById("zarowka"+i+"_img").src.match("zarowka_on.png")=="zarowka_on.png";
 					
 					intelligentHome.bulbs.push(bulb);
+				}
+
+				for(var i = 1; i <= 2; i++)
+				{
+					var pir = {};
+					pir.id = i;
+					pir.on = document.getElementById("pir"+i+"_img").src.match("pir2.jpg")=="pir2.jpg";
+					
+					intelligentHome.pirs.push(pir);
+				}
+				
+				for(var i = 1; i <= 1; i++)
+				{
+					var roleta = {};
+					roleta.id = i;
+					roleta.on = document.getElementById("roleta"+i+"_img").src.match("roleta.jpg")=="roleta.jpg";
+					
+					intelligentHome.rolets.push(roleta);
 				}
 				
 				for(var i = 1; i <= 3; i++)
@@ -85,6 +132,24 @@
 		<p id="zarowka2">Żarówka 2: ON</p>
 		</br>
 		</br>
+
+		<img id="pir1_img" src="pir.jpg" onclick="pir(1)" height="250" width="250"></img>
+		<p>Czujnik 1</p>
+		<p id="pir1"> 0 </p>
+		
+		<img id="pir2_img" src="pir.jpg" onclick="pir(2)" height="250" width="250"></img>
+		<p>Czujnik 2</p>
+		<p id="pir2"> 0 </p>
+		</br>
+		
+		
+		<img id="roleta1_img" src="roleta.jpg" onclick="roleta(1)" height="250" width="250"></img>
+		<p>Roleta</p>
+		<button id="w_gore" onclick="roleta(1,1)"> W góre </button>
+		<button id="stop" onclick="roleta(1,0)"> Stop </button>
+		<button id="w_doł" onclick="roleta(1,-1)"> W dol </button>
+		<p id="roleta1"> STOP </p>
+		
 		</br>
 		JSON:
 		</br>
