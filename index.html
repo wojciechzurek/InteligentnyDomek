@@ -3,91 +3,347 @@
 	<head>
 		<title> Inteligentny Dom </title>
 		<meta charset="UTF-8"></meta>
-		<script>
-			function sliderVal(sliderID)
+		<style>
+			html
 			{
-				var slider = document.getElementById("slider"+sliderID);
-				document.getElementById("sliderText"+sliderID).value = slider.value;
+				display: table;
+				margin: auto;
+				height: 100%;
+			}
+			body
+			{
+				display: table-cell;
+				vertical-align: middle;
+				text-align: center;
+				height: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="canvas" style="border: 2px solid lightblue"></canvas>
+		<textarea id="jsonTextArea" style="width:50%;margin-top: 30px;"></textarea>
+		<script>
+			(
+				function()
+				{
+					var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+					window.requestAnimationFrame = requestAnimationFrame;
+				}
+			)();
+			
+			class Urzadzenie
+			{
+				constructor(_id, _img, _x, _y, _w, _h, _vid)
+				{
+					this.id = _id;
+					this.img = _img;
+					this.x = _x;
+					this.y = _y;
+					this.w = _w;
+					this.h = _h;
+					this.vid = _vid;
+					this.val = 0;
+				}
+
+				getName()
+				{
+					switch (this.id)
+					{
+						case 1:
+							return "Oświetlenie";
+						case 2:
+							return "Czujnik dymu";
+						case 3:
+							return "Roleta";
+						default:
+							return "Nieznane";
+					}
+				}
+				
+				getValue()
+				{
+					return this.val;
+				}
+				
+				draw(ctxa)
+				{
+					ctxa.drawImage(this.img, this.x, this.y);
+				}
+			}
+
+			var WIDTH = 1100;
+			var HEIGHT = 400;
+
+			var canvas = document.getElementById("canvas");
+			canvas.width = WIDTH;
+			canvas.height = HEIGHT;
+			var ctx = canvas.getContext("2d");
+			
+			var dragging = -1,
+				dragStartX = 0,
+				dragStartY = 0,
+				tempMovingObject = null,
+				actualName = "Err";
+			
+			var images = [];
+			
+			var urzadzeniaMenu = [];
+			var urzadzeniaNaPlanszy = [];
+
+			var urzadzeniaInfo = [
+				[1, "bulb", 40, 64],
+				[2, "pir", 40, 40],
+				[3, "roleta", 40, 40],
+			];
+			function podstawoweInformacjeUrzadzeniaPoNazwie(nazwa)
+			{
+				for (var i = 0; i < urzadzeniaInfo.length; i++)
+				{
+					if (urzadzeniaInfo[i][1] == nazwa)
+						return urzadzeniaInfo[i];
+				}
+				return [0, "Err", 0, 0];
+			}
+
+			function podstawoweInformacjeUrzadzeniaPoID(id)
+			{
+				for (var i = 0; i < urzadzeniaInfo.length; i++)
+				{
+					if (urzadzeniaInfo[i][0] == id)
+						return urzadzeniaInfo[i];
+				}
+				return [0, "Err", 0, 0];
+			}
+
+			function loadImages()
+			{
+				var imageNames = [
+								["background",				"rzut.png"],
+								["bulb",					"zarowka_on.png"],
+								["pir",						"pir.png"],
+								["roleta",					"roleta.png"],
+								["deleteArea",				"deleteObject.png"],
+							];
+				
+				for (var i = 0; i < imageNames.length; i++)
+				{
+					images[imageNames[i][0]] = new Image();
+					images[imageNames[i][0]].src = "images/"+imageNames[i][1];
+				}
+			}
+			
+			function rysujUrzadzenia()
+			{
+				for (var i = 0; i < urzadzeniaMenu.length; i++)
+					urzadzeniaMenu[i].draw(ctx);
+				for (var i = 0; i < urzadzeniaNaPlanszy.length; i++)
+					urzadzeniaNaPlanszy[i].draw(ctx);
+			}
+			
+			function update()
+			{
+				ctx.clearRect(0, 0, WIDTH, HEIGHT);
+				ctx.drawImage(images["background"], 150, 0);
+
+				var drawDeleteArea = false;
+				for (var i = 0; i < urzadzeniaNaPlanszy.length; i++)
+				{
+					var urzadzenie = urzadzeniaNaPlanszy[i];
+					
+					if (urzadzenie.x+urzadzenie.w/2 < 150 || urzadzenie.x+urzadzenie.w/2 > 950)
+					{
+						drawDeleteArea = true;
+						break;
+					}
+				}
+				
+				if (drawDeleteArea)
+				{
+					ctx.drawImage(images["deleteArea"], 0, 0);
+					ctx.drawImage(images["deleteArea"], 950, 0);
+				}
+				
+				if (actualName != "Err")
+				{
+					ctx.font = "20px Arial";
+					ctx.strokeStyle = "black";
+					ctx.textAlign = "center";
+					ctx.fillText(actualName, 75, 20);
+				}
+				
+				rysujUrzadzenia();
 				
 				printJSON();
-			}
-			
-			function clickBulb(bulbID)
-			{
-				var bulb = document.getElementById("zarowka"+bulbID+"_img");
-				var on = bulb.src.match("zarowka_on.png")=="zarowka_on.png";
-				var newText = on?"OFF":"ON";
-				var newImage = on?"zarowka_off.png":"zarowka_on.png";
 
-				document.getElementById("zarowka"+bulbID).innerHTML = "Żarówka "+bulbID+": "+newText;
-				bulb.src = newImage;
-
-				printJSON();
+				requestAnimationFrame(update);
 			}
-			
+
 			function printJSON()
 			{
 				var intelligentHome = {};
-				intelligentHome.bulbs = [];
-				intelligentHome.servos = [];
+				intelligentHome.urzadzenia = [];
 
-				for(var i = 1; i <= 2; i++)
+				for (var i = 0; i < urzadzeniaNaPlanszy.length; i++)
 				{
-					var bulb = {};
-					bulb.id = i;
-					bulb.on = document.getElementById("zarowka"+i+"_img").src.match("zarowka_on.png")=="zarowka_on.png";
-					
-					intelligentHome.bulbs.push(bulb);
+					var urz = urzadzeniaNaPlanszy[i];
+					intelligentHome.urzadzenia.push({"VID":urz.vid, "ID":urz.id, "value": urz.getValue()});
 				}
 				
-				for(var i = 1; i <= 3; i++)
-				{
-					var servo = {};
-					servo.id = i;
-					servo.value = document.getElementById("slider"+i).value;
-					
-					intelligentHome.servos.push(servo);
-				}
-
 				document.getElementById("jsonTextArea").value = JSON.stringify(intelligentHome);
 				//console.log(JSON.stringify(intelligentHome));
 			}
+
+			canvas.addEventListener("mousedown",
+				function(event)
+				{
+					var mouseX = event.x-canvas.offsetLeft;
+					var mouseY = event.y-canvas.offsetTop;
+					for (var i = 0; i < urzadzeniaMenu.length; i++)
+					{
+						var urzadzenie = urzadzeniaMenu[i];
+	
+						if (mouseX >= urzadzenie.x && mouseX <= urzadzenie.x+urzadzenie.w &&
+							mouseY >= urzadzenie.y && mouseY <= urzadzenie.y+urzadzenie.h)
+						{
+							var noweUrzadzenie = new Urzadzenie(urzadzenie.id, urzadzenie.img, urzadzenie.x, urzadzenie.y, urzadzenie.w, urzadzenie.h, urzadzeniaNaPlanszy.length);
+							urzadzeniaNaPlanszy.push(noweUrzadzenie);
+
+							dragging = urzadzeniaNaPlanszy.length-1;
+							dragStartX = mouseX;
+							dragStartY = mouseY;
+							
+							break;
+						}
+					}
+					
+					for (var i = 0; i < urzadzeniaNaPlanszy.length; i++)
+					{
+						var urzadzenie = urzadzeniaNaPlanszy[i];
+	
+						if (mouseX >= urzadzenie.x && mouseX <= urzadzenie.x+urzadzenie.w &&
+							mouseY >= urzadzenie.y && mouseY <= urzadzenie.y+urzadzenie.h)
+						{
+							dragging = i;
+							dragStartX = mouseX;
+							dragStartY = mouseY;
+
+							break;
+						}
+					}
+				}
+			);
+			canvas.addEventListener("mouseup",
+				function()
+				{
+					if (dragging != -1)
+					{
+						var urzadzenie = urzadzeniaNaPlanszy[dragging];
+						if (urzadzenie.x+urzadzenie.w/2 < 150 || urzadzenie.x+urzadzenie.w/2 > 950)
+							urzadzeniaNaPlanszy.splice(dragging, 1);
+					}
+					actualName = "Err";
+					dragging = -1;
+				}
+			);
+			canvas.addEventListener("mousemove",
+				function(event)
+				{
+					var mouseX = event.x-canvas.offsetLeft;
+					var mouseY = event.y-canvas.offsetTop;
+					if (dragging == -1)
+					{
+						var newName = "Err";
+						for (var i = 0; i < urzadzeniaMenu.length; i++)
+						{
+							var urzadzenie = urzadzeniaMenu[i];
+		
+							if (mouseX >= urzadzenie.x && mouseX <= urzadzenie.x+urzadzenie.w &&
+								mouseY >= urzadzenie.y && mouseY <= urzadzenie.y+urzadzenie.h)
+							{
+								newName = urzadzenie.getName();
+								break;
+							}
+						}
+						if (newName != "Err")
+							actualName = newName;
+						else
+						{
+							for (var i = 0; i < urzadzeniaNaPlanszy.length; i++)
+							{
+								var urzadzenie = urzadzeniaNaPlanszy[i];
 			
-			function start()
-			{
-				printJSON();
-			}
+								if (mouseX >= urzadzenie.x && mouseX <= urzadzenie.x+urzadzenie.w &&
+									mouseY >= urzadzenie.y && mouseY <= urzadzenie.y+urzadzenie.h)
+								{
+									newName = urzadzenie.getName();
+									break;
+								}
+							}
+							if (newName != "Err")
+								actualName = newName;
+							else
+								actualName = "Err";
+						}
+
+						if (actualName == "Err")
+							document.body.style.cursor = 'default';
+						else
+							document.body.style.cursor = 'pointer';
+					}
+					else if (dragging != -1)
+					{
+						var urzadzenie = urzadzeniaNaPlanszy[dragging];
+
+						urzadzenie.x += mouseX - dragStartX;
+						urzadzenie.y += mouseY - dragStartY;
+
+						dragStartX = mouseX;
+						dragStartY = mouseY;
+					}
+				}
+			);
+			
+			window.addEventListener("mousemove",
+				function(event)
+				{
+					mouseX=event.clientX-canvas.offsetLeft;
+					mouseY=event.clientY-canvas.offsetTop;
+					if (mouseX < 0 || mouseX > WIDTH || mouseY < 0 || mouseY > HEIGHT)
+					{
+						actualName = "Err";
+					}
+				}
+			);
+			
+			window.addEventListener("load",
+				function()
+				{
+					loadImages();
+					
+					var x = 5;
+					var y = 30;
+					var maxH = 0;
+					for (var i = 0; i < urzadzeniaInfo.length; i++)
+					{
+						var info = podstawoweInformacjeUrzadzeniaPoID(i+1);
+						var urzadzonko = new Urzadzenie(info[0], images[info[1]], x, y, info[2], info[3], 0);
+						if (x+urzadzonko.w > 150)
+						{
+							x = 5;
+							y = urzadzonko.y+maxH+5;
+							urzadzonko.x = x;
+							urzadzonko.y = y;
+						}
+						if (urzadzonko.h > maxH)
+							maxH = urzadzonko.h;
+
+						x += urzadzonko.w+5;
+						urzadzeniaMenu.push(urzadzonko);
+					}
+	
+					update();
+				}
+			);
 		</script>
-	</head>
-	<body style="text-align:center" onload="start()">
-		<input id="slider1" type="range" min="0" max="255" step="1" value="128" oninput="sliderVal(1)" onchange="sliderVal(1)"></input>
-		<input id="sliderText1" type="text" size="1" value="128" disabled></input>
-		</br>
-		</br>
-		<input id="slider2" type="range" min="0" max="255" step="1" value="0" oninput="sliderVal(2)" onchange="sliderVal(2)"></input>
-		<input id="sliderText2" type="text" size="1" value="0" disabled></input>
-		</br>
-		</br>
-		<input id="slider3" type="range" min="0" max="255" step="1" value="255" oninput="sliderVal(3)" onchange="sliderVal(3)"></input>
-		<input id="sliderText3" type="text" size="1" value="255" disabled></input>
-		</br>
-		</br>
-		</br>
-		</br>
-		<img id="zarowka1_img" src="zarowka_on.png" onclick="clickBulb(1)"></img>
-		</br>
-		<p id="zarowka1">Żarówka 1: ON</p>
-		</br>
-		</br>
-		</br>
-		<img id="zarowka2_img" src="zarowka_on.png" onclick="clickBulb(2)"></img>
-		</br>
-		<p id="zarowka2">Żarówka 2: ON</p>
-		</br>
-		</br>
-		</br>
-		JSON:
-		</br>
-		<textarea id="jsonTextArea" style="width:50%"></textarea>
 	</body>
 </html>
